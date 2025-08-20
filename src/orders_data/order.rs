@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Just an order, that’s it.
-/// 
+///
 /// Without specifying the owner, used in cases where you already know who the
 /// owner of the order is, such as in a user profile or your own profile.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

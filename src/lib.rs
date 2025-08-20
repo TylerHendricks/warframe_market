@@ -63,17 +63,14 @@ impl MarketClient {
     async fn get_helper<T>(
         &self,
         endpoint: &str,
-        query: Option<&HashMap<String, String>>
+        query: Option<&HashMap<String, String>>,
     ) -> Result<T, MarketError>
     where
         T: DeserializeOwned,
     {
         let url = format!("{BASE_URL}{endpoint}");
 
-        let mut request_builder = self
-            .reqwest_client
-            .get(url)
-            .headers(self.headers.clone());
+        let mut request_builder = self.reqwest_client.get(url).headers(self.headers.clone());
 
         if let Some(value) = query {
             request_builder = request_builder.query(value);
