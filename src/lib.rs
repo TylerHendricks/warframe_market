@@ -7,7 +7,7 @@ use crate::market_error::MarketError;
 
 mod endpoints;
 mod lich;
-mod market_error;
+pub mod market_error;
 mod misc;
 mod orders_data;
 mod riven;
@@ -97,14 +97,20 @@ impl MarketClient {
             request_builder = request_builder.query(value);
         }
 
-        let json = request_builder.send().await?.text().await?;
+        let response = request_builder.send().await?;
 
-        let response: MarketResponse<T> = serde_json::from_str(&json)?;
+        if response.status() == 429 {
+            return Err(MarketError::TooManyRequests);
+        }
 
-        match response.data {
+        let json = response.text().await?;
+
+        let market_response: MarketResponse<T> = serde_json::from_str(&json)?;
+
+        match market_response.data {
             Some(data) => Ok(data),
-            None => Err(MarketError::Api(
-                response.error.expect("should be Some if data is None"),
+            None => Err(MarketError::NoData(
+                market_response.error.expect("should be Some if data is None"),
             )),
         }
     }

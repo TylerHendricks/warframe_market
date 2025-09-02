@@ -4,15 +4,16 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum MarketError {
-    Api(HashMap<String, Vec<String>>),
+    NoData(HashMap<String, Vec<String>>),
     Reqwest(reqwest::Error),
     SerdeJson(serde_json::Error),
+    TooManyRequests,
 }
 
 impl fmt::Display for MarketError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            MarketError::Api(_) => {
+            MarketError::NoData(_) => {
                 write!(f, "api request returned no data")
             }
             MarketError::Reqwest(_) => {
@@ -21,6 +22,9 @@ impl fmt::Display for MarketError {
             MarketError::SerdeJson(_) => {
                 write!(f, "the string could not be deserialized")
             }
+            MarketError::TooManyRequests => {
+                write!(f, "too many requests; rate limit exceeded")
+            }
         }
     }
 }
@@ -28,9 +32,10 @@ impl fmt::Display for MarketError {
 impl error::Error for MarketError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
-            MarketError::Api(_) => None,
+            MarketError::NoData(_) => None,
             MarketError::Reqwest(ref error) => Some(error),
             MarketError::SerdeJson(ref error) => Some(error),
+            MarketError::TooManyRequests => None,
         }
     }
 }
