@@ -5,7 +5,7 @@ use crate::{MarketClient, market_error::MarketError, misc::achievement::Achievem
 impl MarketClient {
     /// Get list of all available achievements, except secret ones.
     pub async fn get_achievements(&self) -> Result<Vec<Achievement>, MarketError> {
-        self.get("achievements").await
+        self.get("achievements", None, false).await
     }
 
     /// Get a list of all achievements for username.
@@ -16,10 +16,15 @@ impl MarketClient {
     pub async fn get_achievements_user(
         &self,
         slug: &str,
-        query: &HashMap<String, String>,
+        query: Option<&HashMap<String, String>>,
     ) -> Result<Vec<Achievement>, MarketError> {
-        self.get_with_query(&format!("achievements/user/{slug}"), query)
-            .await
+        if let Some(q) = query {
+            self.get(&format!("achievements/user/{slug}"), Some(q), false)
+                .await
+        } else {
+            self.get(&format!("achievements/user/{slug}"), None, false)
+                .await
+        }
     }
 
     /// Get a list of all achievements for user id.
@@ -30,9 +35,14 @@ impl MarketClient {
     pub async fn get_achievements_user_id(
         &self,
         user_id: &str,
-        query: &HashMap<String, String>,
+        query: Option<&HashMap<String, String>>,
     ) -> Result<Vec<Achievement>, MarketError> {
-        self.get_with_query(&format!("achievements/userId/{user_id}"), query)
-            .await
+        if let Some(q) = query {
+            self.get(&format!("achievements/userId/{user_id}"), Some(q), false)
+                .await
+        } else {
+            self.get(&format!("achievements/userId/{user_id}"), None, false)
+                .await
+        }
     }
 }

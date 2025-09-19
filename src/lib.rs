@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use reqwest::Response;
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
@@ -27,6 +28,7 @@ pub use misc::user::*;
 pub use misc::versions::*;
 pub use orders_data::order::*;
 pub use orders_data::order_with_user::*;
+pub use orders_data::transaction::*;
 pub use orders_data::user_short::*;
 pub use riven::riven_attribute::*;
 pub use riven::riven_item::*;
@@ -35,7 +37,13 @@ pub use sister::sister_quirk::*;
 pub use sister::sister_weapon::*;
 
 pub const BASE_URL: &str = "https://api.warframe.market/v2/";
+pub const V1_URL: &str = "https://api.warframe.market/v1/";
 pub const ASSETS_URL: &str = "https://warframe.market/static/assets/";
+
+#[derive(Serialize, Deserialize)]
+struct MarketResponseV1<T> {
+    payload: T,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +55,7 @@ struct MarketResponse<T> {
 
 #[derive(Default)]
 pub struct MarketClient {
+    auth_token: Option<String>,
     headers: HeaderMap,
     reqwest_client: reqwest::Client,
 }
@@ -54,6 +63,7 @@ pub struct MarketClient {
 impl MarketClient {
     pub fn new() -> MarketClient {
         Self {
+            auth_token: None,
             reqwest_client: reqwest::Client::new(),
             headers: HeaderMap::new(),
         }
@@ -63,28 +73,11 @@ impl MarketClient {
         self.headers = headers;
     }
 
-    async fn get<T>(&self, endpoint: &str) -> Result<T, MarketError>
-    where
-        T: DeserializeOwned,
-    {
-        self.get_helper(endpoint, None).await
-    }
-
-    async fn get_with_query<T>(
-        &self,
-        endpoint: &str,
-        query: &HashMap<String, String>,
-    ) -> Result<T, MarketError>
-    where
-        T: DeserializeOwned,
-    {
-        self.get_helper(endpoint, Some(query)).await
-    }
-
-    async fn get_helper<T>(
+    async fn get<T>(
         &self,
         endpoint: &str,
         query: Option<&HashMap<String, String>>,
+        needs_authorization: bool,
     ) -> Result<T, MarketError>
     where
         T: DeserializeOwned,
@@ -92,6 +85,13 @@ impl MarketClient {
         let url = format!("{BASE_URL}{endpoint}");
 
         let mut request_builder = self.reqwest_client.get(url).headers(self.headers.clone());
+        if needs_authorization {
+            if let Some(auth_token) = &self.auth_token {
+                request_builder = request_builder.bearer_auth(auth_token);
+            } else {
+                return Err(MarketError::Unauthorized);
+            }
+        }
 
         if let Some(value) = query {
             request_builder = request_builder.query(value);
@@ -99,19 +99,52 @@ impl MarketClient {
 
         let response = request_builder.send().await?;
 
-        if response.status() == 429 {
-            return Err(MarketError::TooManyRequests);
+        parse_response(response).await
+    }
+
+    async fn post<T, U>(&self, endpoint: &str, json: Option<&U>) -> Result<T, MarketError>
+    where
+        T: DeserializeOwned,
+        U: Serialize,
+    {
+        let url = format!("{BASE_URL}{endpoint}");
+
+        let mut request_builder = self
+            .reqwest_client
+            .post(url)
+            .headers(self.headers.clone())
+            .json(&json);
+
+        if let Some(auth_token) = &self.auth_token {
+            request_builder = request_builder.bearer_auth(auth_token);
+        } else {
+            return Err(MarketError::Unauthorized);
         }
 
-        let json = response.text().await?;
+        let response = request_builder.send().await?;
 
-        let market_response: MarketResponse<T> = serde_json::from_str(&json)?;
+        parse_response(response).await
+    }
+}
 
-        match market_response.data {
-            Some(data) => Ok(data),
-            None => Err(MarketError::NoData(
-                market_response.error.expect("should be Some if data is None"),
-            )),
-        }
+async fn parse_response<T>(response: Response) -> Result<T, MarketError>
+where
+    T: DeserializeOwned,
+{
+    if response.status() == 429 {
+        return Err(MarketError::TooManyRequests);
+    }
+
+    let json = response.text().await?;
+
+    let market_response: MarketResponse<T> = serde_json::from_str(&json)?;
+
+    match market_response.data {
+        Some(data) => Ok(data),
+        None => Err(MarketError::NoData(
+            market_response
+                .error
+                .expect("should be Some if data is None"),
+        )),
     }
 }

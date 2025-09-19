@@ -6,8 +6,11 @@ use std::fmt;
 pub enum MarketError {
     NoData(HashMap<String, Vec<String>>),
     Reqwest(reqwest::Error),
+    ReqwestHeaderToStr(reqwest::header::ToStrError),
     SerdeJson(serde_json::Error),
+    SignInFailed,
     TooManyRequests,
+    Unauthorized,
 }
 
 impl fmt::Display for MarketError {
@@ -19,11 +22,20 @@ impl fmt::Display for MarketError {
             MarketError::Reqwest(_) => {
                 write!(f, "could not process request")
             }
+            MarketError::ReqwestHeaderToStr(_) => {
+                write!(f, "reqwest header could not be converted to str")
+            }
             MarketError::SerdeJson(_) => {
                 write!(f, "the string could not be deserialized")
             }
+            MarketError::SignInFailed => {
+                write!(f, "sign in failed")
+            }
             MarketError::TooManyRequests => {
                 write!(f, "too many requests; rate limit exceeded")
+            }
+            MarketError::Unauthorized => {
+                write!(f, "missing authorization header and token")
             }
         }
     }
@@ -32,10 +44,10 @@ impl fmt::Display for MarketError {
 impl error::Error for MarketError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
-            MarketError::NoData(_) => None,
             MarketError::Reqwest(ref error) => Some(error),
+            MarketError::ReqwestHeaderToStr(ref error) => Some(error),
             MarketError::SerdeJson(ref error) => Some(error),
-            MarketError::TooManyRequests => None,
+            _ => None,
         }
     }
 }
@@ -43,6 +55,12 @@ impl error::Error for MarketError {
 impl From<reqwest::Error> for MarketError {
     fn from(value: reqwest::Error) -> Self {
         MarketError::Reqwest(value)
+    }
+}
+
+impl From<reqwest::header::ToStrError> for MarketError {
+    fn from(value: reqwest::header::ToStrError) -> Self {
+        MarketError::ReqwestHeaderToStr(value)
     }
 }
 

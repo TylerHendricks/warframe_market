@@ -28,30 +28,31 @@ async fn test_manifests() {
     client.get_riven_attributes().await.unwrap();
 
     let lich_weapons = client.get_lich_weapons().await.unwrap();
+
     client.get_lich_weapon(&lich_weapons[0].slug).await.unwrap();
 
-    client.get_lich_ephemeras().await.unwrap();
-
     thread::sleep(Duration::from_secs(1));
+
+    client.get_lich_ephemeras().await.unwrap();
 
     client.get_lich_quirks().await.unwrap();
 
     let sister_weapons = client.get_sister_weapons().await.unwrap();
+
+    thread::sleep(Duration::from_secs(1));
 
     client
         .get_sister_weapon(&sister_weapons[0].slug)
         .await
         .unwrap();
 
-    thread::sleep(Duration::from_secs(1));
-
     client.get_sister_ephemeras().await.unwrap();
 
     client.get_sister_quirks().await.unwrap();
 
-    client.get_locations().await.unwrap();
-
     thread::sleep(Duration::from_secs(1));
+
+    client.get_locations().await.unwrap();
 
     client.get_npcs().await.unwrap();
 
@@ -68,12 +69,24 @@ async fn test_achievements() {
 
     let query = HashMap::new();
     client
-        .get_achievements_user("f0rgotten-hero", &query)
+        .get_achievements_user("f0rgotten-hero", Some(&query))
         .await
         .unwrap();
 
     client
-        .get_achievements_user_id("607df8f1d07cd700aa07a72d", &query)
+        .get_achievements_user("f0rgotten-hero", None)
+        .await
+        .unwrap();
+
+    thread::sleep(Duration::from_secs(1));
+
+    client
+        .get_achievements_user_id("607df8f1d07cd700aa07a72d", Some(&query))
+        .await
+        .unwrap();
+
+    client
+        .get_achievements_user_id("607df8f1d07cd700aa07a72d", None)
         .await
         .unwrap();
 
@@ -104,11 +117,18 @@ async fn test_orders() {
 
     let query = HashMap::new();
     client
-        .get_orders_item_top("secura_dual_cestra", &query)
+        .get_orders_item_top("secura_dual_cestra", Some(&query))
+        .await
+        .unwrap();
+
+    client
+        .get_orders_item_top("secura_dual_cestra", None)
         .await
         .unwrap();
 
     client.get_orders_user("f0rgotten-hero").await.unwrap();
+
+    thread::sleep(Duration::from_secs(1));
 
     client
         .get_orders_user_id("607df8f1d07cd700aa07a72d")
