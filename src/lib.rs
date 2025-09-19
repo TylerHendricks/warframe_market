@@ -73,31 +73,6 @@ impl MarketClient {
         self.headers = headers;
     }
 
-    // async fn get<T>(&self, endpoint: &str) -> Result<T, MarketError>
-    // where
-    //     T: DeserializeOwned,
-    // {
-    //     self.get_helper(endpoint, None, false).await
-    // }
-
-    // async fn get_with_query<T>(
-    //     &self,
-    //     endpoint: &str,
-    //     query: &HashMap<String, String>,
-    // ) -> Result<T, MarketError>
-    // where
-    //     T: DeserializeOwned,
-    // {
-    //     self.get_helper(endpoint, Some(query), false).await
-    // }
-
-    // async fn get_authorized<T>(&self, endpoint: &str) -> Result<T, MarketError>
-    // where
-    //     T: DeserializeOwned,
-    // {
-    //     self.get_helper(endpoint, None, true).await
-    // }
-
     async fn get<T>(
         &self,
         endpoint: &str,
